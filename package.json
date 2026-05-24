@@ -1,0 +1,17 @@
+{
+  "name": "capcutbot",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI for inspecting and safely patching local CapCut desktop drafts.",
+  "bin": {
+    "capcutbot": "./src/cli.js"
+  },
+  "scripts": {
+    "env": "node src/cli.js env",
+    "info": "node src/cli.js info",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
+  }
+}
