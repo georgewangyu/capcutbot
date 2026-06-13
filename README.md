@@ -21,6 +21,11 @@ template, list text/audio timing, transcribe messy voiceover, cut a clean
 voiceover with explicit ranges, and replace the draft voiceover with a backed-up
 JSON patch.
 
+## Status
+
+This repo is runnable today for local draft inspection, transcript-assisted
+voiceover cleanup, and bounded deterministic patching.
+
 ## Architecture
 
 ```text
@@ -45,6 +50,13 @@ capcutbot/
 
 ```bash
 npm install
+```
+
+## Validation
+
+```bash
+npm run env
+npm test
 ```
 
 ## Usage
@@ -130,3 +142,9 @@ Planned next:
 - Proof-asset manifest checks.
 - Missing media/path linting.
 - Pop SFX alignment reports.
+
+## Goals
+
+- Keep draft inspection and patching deterministic.
+- Preserve backups and dry-run behavior as the default safety layer.
+- Build toward proof-led edit planning rather than generic one-click video AI.
