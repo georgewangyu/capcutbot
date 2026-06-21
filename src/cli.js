@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import { cleanVoiceover, ffprobeDuration, hasCommand, parseRanges, transcribeAudio, transcriberConfig } from './audio.js';
-import { draftSummary, listAudioSegments, listTextSegments, loadDraft, replaceVoiceover, saveDraft, secondsToMicros } from './draft.js';
+import { draftSummary, duplicateDraftProject, listAudioSegments, listTextSegments, loadDraft, replaceText, replaceVoiceover, saveDraft, secondsToMicros } from './draft.js';
 import { loadEnvFiles } from './env.js';
 import { defaultDraftsDir, expandPath } from './paths.js';
 import { printJson, printRows } from './output.js';
@@ -54,6 +54,19 @@ program
     });
 
 program
+    .command('duplicate <source> <target>')
+    .description('Duplicate a CapCut draft folder by project name or path')
+    .option('--dry-run', 'Print planned copy without creating the target project')
+    .action((source, target, options) => {
+        try {
+            printJson(duplicateDraftProject(source, target, { dryRun: Boolean(options.dryRun) }));
+        } catch (error) {
+            console.error(`Error: ${error.message}`);
+            process.exit(1);
+        }
+    });
+
+program
     .command('texts <project>')
     .description('List text overlays and timings')
     .option('--format <format>', 'Output format: table or json', 'table')
@@ -67,6 +80,34 @@ program
                 { label: 'dur', get: (row) => row.durationSeconds },
                 { label: 'text', get: (row) => row.text },
             ]);
+        } catch (error) {
+            console.error(`Error: ${error.message}`);
+            process.exit(1);
+        }
+    });
+
+program
+    .command('replace-text <project>')
+    .description('Replace a text material in a CapCut draft')
+    .requiredOption('--text <text>', 'Replacement text')
+    .option('--material-id <id>', 'Exact text material id to replace')
+    .option('--match <text>', 'Existing text substring to match')
+    .option('--first', 'Replace the first matching material when match is ambiguous')
+    .option('--dry-run', 'Print planned patch without writing the draft')
+    .action((project, options) => {
+        try {
+            const loaded = loadDraft(project);
+            const result = replaceText(loaded.draft, {
+                text: options.text,
+                materialId: options.materialId,
+                match: options.match,
+                first: Boolean(options.first),
+            });
+            const save = saveDraft(loaded.draftFile, loaded.draft, {
+                dryRun: Boolean(options.dryRun),
+                backupLabel: 'capcutbot-pre-text',
+            });
+            printJson({ projectDir: loaded.projectDir, draftFile: loaded.draftFile, ...result, ...save });
         } catch (error) {
             console.error(`Error: ${error.message}`);
             process.exit(1);

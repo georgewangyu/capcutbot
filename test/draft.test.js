@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
-import { draftSummary, listAudioSegments, listTextSegments, replaceVoiceover, secondsToMicros } from '../src/draft.js';
+import { draftSummary, duplicateDraftProject, listAudioSegments, listTextSegments, replaceText, replaceVoiceover, secondsToMicros } from '../src/draft.js';
 
 function fixtureDraft() {
     return {
@@ -12,7 +15,7 @@ function fixtureDraft() {
                 { id: 'audio-1', type: 'record', name: 'Voiceover2', duration: 10_000_000, path: 'old.aac' },
             ],
             texts: [
-                { id: 'text-1', content: JSON.stringify({ text: 'Budget my Paycheck' }) },
+                { id: 'text-1', content: JSON.stringify({ styles: [{ range: [0, 18] }], text: 'Budget my Paycheck' }) },
             ],
         },
         tracks: [
@@ -58,4 +61,31 @@ test('replaces matching voiceover material and extends duration', () => {
     assert.equal(draft.materials.audios[0].name, 'clean voiceover');
     assert.match(draft.materials.audios[0].path, /audio_record\/clean\.aac$/);
     assert.equal(draft.tracks[1].segments[0].target_timerange.duration, 12_500_000);
+});
+
+test('replaces matching text material content', () => {
+    const draft = fixtureDraft();
+    const result = replaceText(draft, {
+        match: 'Budget',
+        text: '5 AI Skills I\nWish I Knew Last Year',
+    });
+
+    assert.equal(result.previousText, 'Budget my Paycheck');
+    assert.equal(listTextSegments(draft)[0].text, '5 AI Skills I\nWish I Knew Last Year');
+    assert.deepEqual(JSON.parse(draft.materials.texts[0].content).styles[0].range, [0, 35]);
+});
+
+test('duplicates a draft project folder without copying lock file', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'capcutbot-test-'));
+    const source = path.join(root, 'Source Project');
+    const target = path.join(root, 'Target Project');
+    fs.mkdirSync(source, { recursive: true });
+    fs.writeFileSync(path.join(source, 'draft_info.json'), JSON.stringify(fixtureDraft()));
+    fs.writeFileSync(path.join(source, '.locked'), '');
+
+    const result = duplicateDraftProject(source, target);
+
+    assert.equal(result.copied, true);
+    assert.equal(fs.existsSync(path.join(target, 'draft_info.json')), true);
+    assert.equal(fs.existsSync(path.join(target, '.locked')), false);
 });

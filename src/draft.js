@@ -31,6 +31,38 @@ export function saveDraft(draftFile, draft, { dryRun = false, backupLabel = 'cap
     return { wrote: true, backupFile, bytes: Buffer.byteLength(pretty) };
 }
 
+export function duplicateDraftProject(source, targetName, options = {}) {
+    const resolved = resolveDraftPath(source);
+    const targetDir = path.isAbsolute(targetName)
+        ? targetName
+        : path.join(path.dirname(resolved.projectDir), targetName);
+
+    if (fs.existsSync(targetDir)) {
+        throw new Error(`Target CapCut draft already exists: ${targetDir}`);
+    }
+
+    if (options.dryRun) {
+        return {
+            copied: false,
+            sourceDir: resolved.projectDir,
+            targetDir,
+        };
+    }
+
+    fs.cpSync(resolved.projectDir, targetDir, {
+        recursive: true,
+        errorOnExist: true,
+        force: false,
+        filter: (sourcePath) => path.basename(sourcePath) !== '.locked',
+    });
+
+    return {
+        copied: true,
+        sourceDir: resolved.projectDir,
+        targetDir,
+    };
+}
+
 export function draftSummary(draft) {
     const tracks = Array.isArray(draft.tracks) ? draft.tracks : [];
     const materials = draft.materials && typeof draft.materials === 'object' ? draft.materials : {};
@@ -62,6 +94,35 @@ export function listTextSegments(draft) {
             materialId: entry.segment.material_id,
         };
     });
+}
+
+export function replaceText(draft, options = {}) {
+    const textMaterials = draft.materials?.texts;
+    if (!Array.isArray(textMaterials)) throw new Error('Draft has no materials.texts array');
+    if (!options.text) throw new Error('Missing replacement text');
+    if (!options.materialId && !options.match) throw new Error('Pass either materialId or match');
+
+    const matches = textMaterials.filter((material) => {
+        if (options.materialId) return material.id === options.materialId;
+        return extractText(material).includes(options.match);
+    });
+
+    if (matches.length === 0) {
+        throw new Error(`Could not find text material matching "${options.materialId || options.match}"`);
+    }
+    if (matches.length > 1 && !options.first) {
+        throw new Error(`Found ${matches.length} matching text materials. Pass a material id or --first.`);
+    }
+
+    const material = matches[0];
+    const previousText = extractText(material);
+    writeMaterialText(material, options.text);
+
+    return {
+        materialId: material.id,
+        previousText,
+        text: options.text,
+    };
 }
 
 export function listAudioSegments(draft) {
@@ -178,6 +239,26 @@ function extractText(material) {
         }
     }
     return material.text || material.name || '';
+}
+
+function writeMaterialText(material, text) {
+    if (material.content) {
+        try {
+            const parsed = JSON.parse(material.content);
+            parsed.text = text;
+            if (Array.isArray(parsed.styles) && parsed.styles.length === 1 && Array.isArray(parsed.styles[0].range)) {
+                parsed.styles[0].range = [0, text.length];
+            }
+            material.content = JSON.stringify(parsed);
+        } catch {
+            material.content = text;
+        }
+    }
+    if ('text' in material) material.text = text;
+    if ('recognize_text' in material) material.recognize_text = '';
+    if ('translate_original_text' in material) material.translate_original_text = '';
+    if (material.words) material.words.text = [];
+    if (material.current_words) material.current_words.text = [];
 }
 
 function indexById(items) {

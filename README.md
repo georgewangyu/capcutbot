@@ -79,6 +79,20 @@ List draft text overlays:
 node src/cli.js texts "AI VERSION TEMPLATE"
 ```
 
+Duplicate a draft into a new project folder:
+
+```bash
+node src/cli.js duplicate "AI VERSION TEMPLATE" "AI VERSION TEMPLATE - next reel"
+```
+
+Replace a text overlay by material id:
+
+```bash
+node src/cli.js replace-text "AI VERSION TEMPLATE - next reel" \
+  --material-id "TEXT-MATERIAL-ID" \
+  --text $'5 AI Skills I\nWish I Knew Last Year'
+```
+
 List draft audio tracks:
 
 ```bash
@@ -131,6 +145,8 @@ Supported now:
 
 - Draft summary.
 - Text overlay timing inventory.
+- Draft duplication into a new project folder.
+- Text material replacement with dry-run and backup support.
 - Audio segment inventory.
 - MLX Whisper transcription bridge.
 - ffmpeg voiceover range cleanup.
