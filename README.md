@@ -1,22 +1,8 @@
----
-doc_schema: "doc-frontmatter-v1"
-doc_id: "capcutbot/README"
-doc_type: "readme"
-doc_status: "active"
-title: "capcutbot - CapCut Draft Automation Client"
-description: "CLI for inspecting and safely patching local CapCut desktop drafts."
-memory_eligible: false
-memory_priority: "low"
-doc_tags:
-  - "domain:social-media"
-  - "tool:capcutbot"
-  - "type:readme"
----
 # capcutbot - CapCut Draft Automation Client
 
 Local CLI for inspecting and safely patching CapCut desktop drafts.
 
-The first version is focused on George's short-form editing workflow: inspect a
+The first version is focused on short-form editing workflows: inspect a
 template, list text/audio timing, transcribe messy voiceover, cut a clean
 voiceover with explicit ranges, and replace the draft voiceover with a backed-up
 JSON patch.
