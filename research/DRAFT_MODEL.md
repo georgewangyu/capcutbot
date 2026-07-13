@@ -14,8 +14,9 @@ Important invariants:
   audio material metadata.
 - Draft media copied into the project usually lives under folders like
   `audio_record/` and is referenced through CapCut's draft-path placeholder.
-- CapCut can overwrite direct JSON edits while a project is open. Close the
-  project before patching and reopen it after the bot reports a backup path.
+- CapCut can overwrite direct JSON edits to the exact draft it is actively
+  autosaving. CapCutBot may still create or patch a separately named draft while
+  the app is open; it reports the running state without blocking the operation.
 
 Current editing bias:
 

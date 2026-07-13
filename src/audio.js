@@ -23,6 +23,32 @@ export function ffprobeDuration(file) {
     return duration;
 }
 
+export function ffprobeVideoMetadata(file) {
+    const result = spawnSync('/opt/homebrew/bin/ffprobe', [
+        '-v', 'error',
+        '-show_entries', 'stream=codec_type,width,height:format=duration',
+        '-of', 'json',
+        file,
+    ], { encoding: 'utf8' });
+    if (result.status !== 0) {
+        throw new Error(`ffprobe failed: ${result.stderr.trim() || result.stdout.trim()}`);
+    }
+    const parsed = JSON.parse(result.stdout);
+    const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
+    const video = streams.find((stream) => stream.codec_type === 'video');
+    if (!video || !Number.isFinite(Number(video.width)) || !Number.isFinite(Number(video.height))) {
+        throw new Error(`Could not parse video dimensions for ${file}`);
+    }
+    const durationSeconds = Number.parseFloat(parsed.format?.duration);
+    if (!Number.isFinite(durationSeconds)) throw new Error(`Could not parse video duration for ${file}`);
+    return {
+        durationSeconds,
+        width: Number(video.width),
+        height: Number(video.height),
+        hasAudio: streams.some((stream) => stream.codec_type === 'audio'),
+    };
+}
+
 export function parseRanges(value) {
     if (!value) throw new Error('Missing --ranges value');
     return value.split(',').map((part) => {

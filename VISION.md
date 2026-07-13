@@ -21,6 +21,7 @@ proof-backed.
 ## Non-Goals
 
 - Do not pretend to be a one-click creative editor.
-- Do not patch open CapCut projects without warning.
+- Allow concurrent work in separate CapCut drafts; warn without blocking when
+  CapCut is running.
 - Do not infer edit decisions from vague heuristics when transcript evidence is
   available.
