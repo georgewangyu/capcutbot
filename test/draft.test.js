@@ -294,6 +294,7 @@ test('saves every canonical CapCut timeline graph copy together', () => {
 
 test('adds a dry-run full-frame video overlay with exact timing from an archetype', () => {
     const draft = fixtureDraft();
+    draft.materials.videos[0].local_material_id = 'source-local-material';
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'capcutbot-overlay-'));
     const asset = path.join(root, 'overlay.mp4');
     fs.writeFileSync(asset, 'fixture');
@@ -322,8 +323,50 @@ test('adds a dry-run full-frame video overlay with exact timing from an archetyp
     assert.equal(draft.materials.videos.at(-1).width, 840);
     assert.equal(draft.materials.videos.at(-1).height, 540);
     assert.equal(draft.materials.videos.at(-1).has_audio, false);
+    assert.equal(draft.materials.videos.at(-1).local_material_id, '');
     assert.match(draft.materials.videos.at(-1).path, /capcutbot_media\/overlay\.mp4$/);
     assert.equal(fs.existsSync(path.join(root, 'capcutbot_media', 'overlay.mp4')), false);
+});
+
+test('allocates a fresh Media-panel identity for a cloned video overlay', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'capcutbot-overlay-local-id-'));
+    const asset = path.join(root, 'overlay.mov');
+    fs.writeFileSync(asset, 'fixture');
+    fs.writeFileSync(path.join(root, 'draft_meta_info.json'), JSON.stringify({
+        draft_materials: [{
+            type: 0,
+            value: [{
+                id: 'source-local-material',
+                extra_info: 'main.mp4',
+                file_Path: '/source/main.mp4',
+            }],
+        }],
+    }));
+    fs.writeFileSync(path.join(root, 'draft_virtual_store.json'), JSON.stringify({
+        draft_virtual_store: [{
+            type: 1,
+            value: [{ child_id: 'source-local-material', parent_id: '' }],
+        }],
+    }));
+    const draft = fixtureDraft();
+    draft.materials.videos[0].local_material_id = 'source-local-material';
+    const ids = ['video-new', 'segment-new', 'track-new'][Symbol.iterator]();
+
+    addVideoOverlay(draft, root, asset, {
+        dryRun: true,
+        startMicros: 0,
+        durationMicros: 1_000_000,
+        assetDurationMicros: 1_000_000,
+        mediaMetadata: { width: 1080, height: 1920, hasAudio: false },
+        idFactory: () => ids.next().value,
+    });
+    const result = repairProjectVideoMediaIndex(draft, root, { dryRun: true });
+    const overlay = draft.materials.videos.at(-1);
+
+    assert.equal(result.registered.length, 1);
+    assert.equal(result.reused.length, 0);
+    assert.notEqual(overlay.local_material_id, 'source-local-material');
+    assert.equal(result.registered[0].localMaterialId, overlay.local_material_id);
 });
 
 test('adds a video overlay from a cross-draft archetype when the target only has a compound clip', () => {

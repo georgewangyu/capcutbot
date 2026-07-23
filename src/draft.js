@@ -715,6 +715,12 @@ export function addVideoOverlay(draft, projectDir, videoPath, options = {}) {
 
     const material = remapIds(deepClone(sourceMaterial), idMap);
     material.id = materialId;
+    // A cloned timeline material must not inherit the Media-panel identity of
+    // its archetype. If it does, repairProjectVideoMediaIndex() treats the new
+    // overlay as the original source clip and repoints that source entry to the
+    // overlay file. Leave the field blank so the media-index pass allocates a
+    // new local ID for this independently imported asset.
+    material.local_material_id = '';
     material.path = `${projectMediaPlaceholder()}/capcutbot_media/${destinationName}`;
     material.duration = options.assetDurationMicros || durationMicros;
     if (options.mediaMetadata) {
